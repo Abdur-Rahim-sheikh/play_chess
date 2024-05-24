@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "play-chess"
+version = "0.1.0"
+description = "Ready to play chess with docker"
+authors = ["Abdur-Rahim-sheikh <abi.rahim.sheikh@gmail.com>"]
+readme = "README.md"
+packages = [{include = "play_chess"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+numpy = "^1.26.4"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
