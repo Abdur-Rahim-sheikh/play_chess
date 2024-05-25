@@ -38,3 +38,51 @@ class GameState:
             self.white_to_move = not self.white_to_move
         else:
             print("No moves to undo")
+
+    def all_valid_moves(self):
+        # for now all possible moves are valid, not considering check
+        return self.all_possible_moves()
+
+    def all_possible_moves(
+        self,
+    ):
+        moves = []
+
+        for r in range(len(self.board)):
+            for c in range(len(self.board[r])):
+                turn = self.board[r][c][0]
+                if (turn == "w" and self.white_to_move) or (
+                    turn == "b" and not self.white_to_move
+                ):
+                    piece = self.board[r][c][1]
+                    if piece == "P":
+                        self.pawn_moves(r, c, moves)
+                    elif piece == "R":
+                        self.rook_moves(r, c, moves)
+                    elif piece == "N":
+                        self.knight_moves(r, c, moves)
+                    elif piece == "B":
+                        self.bishop_moves(r, c, moves)
+                    elif piece == "Q":
+                        self.queen_moves(r, c, moves)
+                    elif piece == "K":
+                        self.king_moves(r, c, moves)
+        return moves
+
+    def pawn_moves(self, r, c, moves):
+        pass
+
+    def rook_moves(self, r, c, moves):
+        pass
+
+    def knight_moves(self, r, c, moves):
+        pass
+
+    def bishop_moves(self, r, c, moves):
+        pass
+
+    def queen_moves(self, r, c, moves):
+        pass
+
+    def king_moves(self, r, c, moves):
+        pass

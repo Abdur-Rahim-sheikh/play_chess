@@ -1,7 +1,8 @@
 import pygame as p
-
+import logging
 from chess import GameState
 
+logger = logging.getLogger(__name__)
 WIDTH = HEIGHT = 512  # 400 is another option
 DIMENSION = 8  # dimensions of a chess board are 8x8
 SQ_SIZE = HEIGHT // DIMENSION
@@ -52,6 +53,8 @@ def main():
     clock = p.time.Clock()
     screen.fill(p.Color("white"))
     gs = GameState()
+    valid_moves = gs.all_valid_moves()
+    move_made = False  # flag variable for when a move is made
     load_images()
     running = True
     sq_selected = ()  # no square is selected, keep track of the last click of the user (tuple: (row, col))
@@ -73,13 +76,20 @@ def main():
                 if len(player_clicks) == 2:
                     move = gs.get_move(player_clicks[0], player_clicks[1])
                     print(move)
-                    gs.make_move(move)
+                    if move in valid_moves:
+                        gs.make_move(move)
+                        move_made = True
+                    else:
+                        logger.warning(f"Invalid move: {move}")
                     sq_selected = ()
                     player_clicks = []
             elif e.type == p.KEYDOWN:
                 if e.key == p.K_z and p.key.get_mods() and p.KMOD_CTRL:
                     gs.undo_move()
 
+        if move_made:
+            valid_moves = gs.all_valid_moves()
+            move_made = False
         draw_game_state(screen, gs)
         clock.tick(MAX_FPS)
         p.display.flip()

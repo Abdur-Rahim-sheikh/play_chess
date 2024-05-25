@@ -18,6 +18,11 @@ class Move:
             start_sq[0] * 1000 + start_sq[1] * 100 + end_sq[0] * 10 + end_sq[1]
         )
 
+    def __eq__(self, other):
+        if isinstance(other, Move):
+            return self.move_id == other.move_id
+        return False
+
     def __str__(self):
         return self.get_chess_notation()
 
@@ -26,5 +31,5 @@ class Move:
             self.start_sq[0], self.start_sq[1]
         ) + self.get_rank_file(self.end_sq[0], self.end_sq[1])
 
-    def get_rank_file(self, r, c) -> str:
+    def get_rank_file(self, r: int, c: int) -> str:
         return self.cols_to_files[c] + self.rows_to_ranks[r]
