@@ -1,1 +1,2 @@
-from .chess_engine import GameState
+from .game_state import GameState
+from .move import Move
