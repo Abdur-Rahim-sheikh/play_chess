@@ -75,17 +75,20 @@ def main():
                     player_clicks.append(sq_selected)
                 if len(player_clicks) == 2:
                     move = gs.get_move(player_clicks[0], player_clicks[1])
-                    print(move)
+
                     if move in valid_moves:
                         gs.make_move(move)
                         move_made = True
                     else:
-                        logger.warning(f"Invalid move: {move}")
+                        logger.warning(
+                            f"Invalid move: {move}, allowed are:{[str(move) for move in valid_moves]}"
+                        )
                     sq_selected = ()
                     player_clicks = []
             elif e.type == p.KEYDOWN:
                 if e.key == p.K_z and p.key.get_mods() and p.KMOD_CTRL:
                     gs.undo_move()
+                    move_made = True
 
         if move_made:
             valid_moves = gs.all_valid_moves()

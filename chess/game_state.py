@@ -1,9 +1,15 @@
+import logging
+
 import numpy as np
 
 from .move import Move
 
+logger = logging.getLogger(__name__)
+
 
 class GameState:
+    BLANK = "--"
+
     def __init__(self):
         self.board = np.array(
             [
@@ -37,22 +43,20 @@ class GameState:
             self.board[move.end_sq[0]][move.end_sq[1]] = move.piece_captured
             self.white_to_move = not self.white_to_move
         else:
-            print("No moves to undo")
+            logger.info("No moves to undo")
 
     def all_valid_moves(self):
         # for now all possible moves are valid, not considering check
         return self.all_possible_moves()
 
-    def all_possible_moves(
-        self,
-    ):
+    def all_possible_moves(self):
         moves = []
 
         for r in range(len(self.board)):
             for c in range(len(self.board[r])):
-                turn = self.board[r][c][0]
-                if (turn == "w" and self.white_to_move) or (
-                    turn == "b" and not self.white_to_move
+                piece_color = self.board[r][c][0]
+                if (piece_color == "w" and self.white_to_move) or (
+                    piece_color == "b" and not self.white_to_move
                 ):
                     piece = self.board[r][c][1]
                     if piece == "P":
@@ -62,27 +66,113 @@ class GameState:
                     elif piece == "N":
                         self.knight_moves(r, c, moves)
                     elif piece == "B":
+                        logger.info(f"Bishop {moves}")
                         self.bishop_moves(r, c, moves)
+                        logger.info(f"Bishop after: {moves}")
                     elif piece == "Q":
                         self.queen_moves(r, c, moves)
                     elif piece == "K":
                         self.king_moves(r, c, moves)
         return moves
 
+    def __valid_move(self, start_sq: tuple[int, int], end_sq: tuple[int, int]) -> bool:
+        return (
+            0 <= end_sq[0] < 8
+            and 0 <= end_sq[1] < 8
+            and start_sq != end_sq
+            and self.board[start_sq[0]][start_sq[1]][0]
+            != self.board[end_sq[0]][end_sq[1]][0]
+        )
+
+    def __fill_direction(self, r, c, dr, dc, moves):
+        row, col = r + dr, c + dc
+
+        while self.__valid_move((r, c), (row, col)):
+            logger.warning(f"valid {r} {c} {dr} {dc} {row} {col}")
+            moves.append(self.get_move((r, c), (row, col)))
+
+            if self.board[row][col] != self.BLANK:
+                break
+            row, col = row + dr, col + dc
+        logger.warning(f"invalid {r} {c} {dr} {dc} {row} {col}")
+
     def pawn_moves(self, r, c, moves):
-        pass
+        if self.white_to_move:
+            if r - 1 >= 0 and self.board[r - 1][c] == "--":
+                moves.append(self.get_move((r, c), (r - 1, c)))
+                if r == 6 and self.board[r - 2][c] == "--":
+                    moves.append(self.get_move((r, c), (r - 2, c)))
+
+            if r - 1 >= 0 and c - 1 >= 0 and self.board[r - 1][c - 1][0] == "b":
+                moves.append(self.get_move((r, c), (r - 1, c - 1)))
+            if r - 1 >= 0 and c + 1 < 8 and self.board[r - 1][c + 1][0] == "b":
+                moves.append(self.get_move((r, c), (r - 1, c + 1)))
+        else:
+            if r + 1 < 8 and self.board[r + 1][c] == "--":
+                moves.append(self.get_move((r, c), (r + 1, c)))
+                if r == 1 and self.board[r + 2][c] == "--":
+                    moves.append(self.get_move((r, c), (r + 2, c)))
+            if r + 1 < 8 and c - 1 >= 0 and self.board[r + 1][c - 1][0] == "w":
+                moves.append(self.get_move((r, c), (r + 1, c - 1)))
+            if r + 1 < 8 and c + 1 < 8 and self.board[r + 1][c + 1][0] == "w":
+                moves.append(self.get_move((r, c), (r + 1, c + 1)))
 
     def rook_moves(self, r, c, moves):
-        pass
+        logger.warning(f"Rook {r} {c}")
+        #   left
+        self.__fill_direction(r, c, -1, 0, moves)
+        #   right
+        self.__fill_direction(r, c, 1, 0, moves)
+        #   up
+        self.__fill_direction(r, c, 0, -1, moves)
+        #   down
+        self.__fill_direction(r, c, 0, 1, moves)
 
     def knight_moves(self, r, c, moves):
-        pass
+        hops = [
+            (-2, -1),
+            (-2, 1),
+            (-1, -2),
+            (-1, 2),
+            (1, -2),
+            (1, 2),
+            (2, -1),
+            (2, 1),
+        ]
+        for dr, dc in hops:
+            if self.__valid_move((r, c), (r + dr, c + dc)):
+                moves.append(self.get_move((r, c), (r + dr, c + dc)))
 
     def bishop_moves(self, r, c, moves):
-        pass
+        logger.warning(f"Bishop {r} {c}")
+        #   up left
+        self.__fill_direction(r, c, -1, -1, moves)
+        #   up right
+        self.__fill_direction(r, c, 1, -1, moves)
+        #   down left
+        self.__fill_direction(r, c, -1, 1, moves)
+        #   down right
+        self.__fill_direction(r, c, 1, 1, moves)
 
     def queen_moves(self, r, c, moves):
-        pass
+        logger.warning(f"Queen {r} {c}")
+        #  rook moves
+        self.rook_moves(r, c, moves)
+        #  bishop moves
+        self.bishop_moves(r, c, moves)
 
     def king_moves(self, r, c, moves):
-        pass
+        around = [
+            (-1, 0),
+            (1, 0),
+            (0, -1),
+            (0, 1),
+            (-1, -1),
+            (1, -1),
+            (-1, 1),
+            (1, 1),
+        ]
+        for dr, dc in around:
+            row, col = r + dr, c + dc
+            if self.__valid_move((r, c), (row, col)):
+                moves.append(self.get_move((r, c), (row, col)))
