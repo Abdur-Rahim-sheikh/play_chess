@@ -26,6 +26,14 @@ class GameState:
 
         self.white_to_move = True
         self.move_log = []
+        self.move_functions = {
+            "P": self.pawn_moves,
+            "R": self.rook_moves,
+            "N": self.knight_moves,
+            "B": self.bishop_moves,
+            "Q": self.queen_moves,
+            "K": self.king_moves,
+        }
 
     def get_move(self, start_sq: tuple[int, int], end_sq: tuple[int, int]) -> Move:
         return Move(start_sq, end_sq, self.board)
@@ -59,20 +67,9 @@ class GameState:
                     piece_color == "b" and not self.white_to_move
                 ):
                     piece = self.board[r][c][1]
-                    if piece == "P":
-                        self.pawn_moves(r, c, moves)
-                    elif piece == "R":
-                        self.rook_moves(r, c, moves)
-                    elif piece == "N":
-                        self.knight_moves(r, c, moves)
-                    elif piece == "B":
-                        logger.info(f"Bishop {moves}")
-                        self.bishop_moves(r, c, moves)
-                        logger.info(f"Bishop after: {moves}")
-                    elif piece == "Q":
-                        self.queen_moves(r, c, moves)
-                    elif piece == "K":
-                        self.king_moves(r, c, moves)
+                    if piece == self.BLANK:
+                        continue
+                    self.move_functions[piece](r, c, moves)
         return moves
 
     def __valid_move(self, start_sq: tuple[int, int], end_sq: tuple[int, int]) -> bool:
