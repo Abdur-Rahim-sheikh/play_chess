@@ -25,6 +25,11 @@ class GameState:
         )
 
         self.white_to_move = True
+        self.kings_position = {
+            "w": (7, 4),
+            "b": (0, 4),
+
+        }
         self.move_log = []
         self.move_functions = {
             "P": self.pawn_moves,
@@ -43,6 +48,8 @@ class GameState:
         self.board[move.end_sq[0]][move.end_sq[1]] = move.piece_moved
         self.move_log.append(move)
         self.white_to_move = not self.white_to_move
+        if move.piece_moved[1] == 'K':
+            self.kings_position[move.piece_moved[0]] = (move.end_sq[0], move.end_sq[1])
 
     def undo_move(self) -> None:
         if len(self.move_log) != 0:
@@ -50,6 +57,8 @@ class GameState:
             self.board[move.start_sq[0]][move.start_sq[1]] = move.piece_moved
             self.board[move.end_sq[0]][move.end_sq[1]] = move.piece_captured
             self.white_to_move = not self.white_to_move
+            if move.piece_moved[1] == 'K':
+                self.kings_position[move.piece_moved[0]] = (move.start_sq[0], move.start_sq[1])
         else:
             logger.info("No moves to undo")
 
