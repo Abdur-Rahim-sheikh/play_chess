@@ -26,6 +26,9 @@ class Move:
     def __str__(self):
         return self.get_chess_notation()
 
+    def __hash__(self):
+        return self.move_id
+
     def get_chess_notation(self) -> str:
         return self.get_rank_file(
             self.start_sq[0], self.start_sq[1]

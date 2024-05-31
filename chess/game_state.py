@@ -62,12 +62,39 @@ class GameState:
         else:
             logger.info("No moves to undo")
 
-    def all_valid_moves(self):
-        # for now all possible moves are valid, not considering check
-        return self.all_possible_moves()
+    def all_valid_moves(self) -> set[Move]:
+        # generate all possible moves
+        moves = self.all_possible_moves()
+        #  for each move make opponent's move
+        for move in list(moves):
+            self.make_move(move)
+            self.white_to_move = not self.white_to_move # to be able to know if in check the same color
+            #  generate all possible moves for opponent after our move
+            # if opponent can capture our king, remove that move
+            if self.in_check():
+                moves.remove(move)
+            self.white_to_move = not self.white_to_move
+            self.undo_move()
+        
 
-    def all_possible_moves(self):
-        moves = []
+        return moves
+
+    def in_check(self) -> bool:
+        king_color = "w" if self.white_to_move else "b"
+        return self.square_under_attack(self.kings_position[king_color])
+
+
+    def square_under_attack(self, sq: tuple[int, int]) -> bool:
+        self.white_to_move = not self.white_to_move
+        opponent_moves = self.all_possible_moves()
+        self.white_to_move = not self.white_to_move
+        for move in opponent_moves:
+            if move.end_sq == sq:
+                return True
+        return False
+
+    def all_possible_moves(self) -> set[Move]:
+        moves = set()
 
         for r in range(len(self.board)):
             for c in range(len(self.board[r])):
@@ -90,41 +117,41 @@ class GameState:
             != self.board[end_sq[0]][end_sq[1]][0]
         )
 
-    def __fill_direction(self, r, c, dr, dc, moves):
+    def __fill_direction(self, r, c, dr, dc, moves) -> None:
         row, col = r + dr, c + dc
 
         while self.__valid_move((r, c), (row, col)):
-            logger.warning(f"valid {r} {c} {dr} {dc} {row} {col}")
-            moves.append(self.get_move((r, c), (row, col)))
+            
+            moves.add(self.get_move((r, c), (row, col)))
 
             if self.board[row][col] != self.BLANK:
                 break
             row, col = row + dr, col + dc
-        logger.warning(f"invalid {r} {c} {dr} {dc} {row} {col}")
+        
 
-    def pawn_moves(self, r, c, moves):
+    def pawn_moves(self, r, c, moves) -> None:
         if self.white_to_move:
             if r - 1 >= 0 and self.board[r - 1][c] == "--":
-                moves.append(self.get_move((r, c), (r - 1, c)))
+                moves.add(self.get_move((r, c), (r - 1, c)))
                 if r == 6 and self.board[r - 2][c] == "--":
-                    moves.append(self.get_move((r, c), (r - 2, c)))
+                    moves.add(self.get_move((r, c), (r - 2, c)))
 
             if r - 1 >= 0 and c - 1 >= 0 and self.board[r - 1][c - 1][0] == "b":
-                moves.append(self.get_move((r, c), (r - 1, c - 1)))
+                moves.add(self.get_move((r, c), (r - 1, c - 1)))
             if r - 1 >= 0 and c + 1 < 8 and self.board[r - 1][c + 1][0] == "b":
-                moves.append(self.get_move((r, c), (r - 1, c + 1)))
+                moves.add(self.get_move((r, c), (r - 1, c + 1)))
         else:
             if r + 1 < 8 and self.board[r + 1][c] == "--":
-                moves.append(self.get_move((r, c), (r + 1, c)))
+                moves.add(self.get_move((r, c), (r + 1, c)))
                 if r == 1 and self.board[r + 2][c] == "--":
-                    moves.append(self.get_move((r, c), (r + 2, c)))
+                    moves.add(self.get_move((r, c), (r + 2, c)))
             if r + 1 < 8 and c - 1 >= 0 and self.board[r + 1][c - 1][0] == "w":
-                moves.append(self.get_move((r, c), (r + 1, c - 1)))
+                moves.add(self.get_move((r, c), (r + 1, c - 1)))
             if r + 1 < 8 and c + 1 < 8 and self.board[r + 1][c + 1][0] == "w":
-                moves.append(self.get_move((r, c), (r + 1, c + 1)))
+                moves.add(self.get_move((r, c), (r + 1, c + 1)))
 
-    def rook_moves(self, r, c, moves):
-        logger.warning(f"Rook {r} {c}")
+    def rook_moves(self, r:int, c:int, moves:set[Move]) -> None:
+
         #   left
         self.__fill_direction(r, c, -1, 0, moves)
         #   right
@@ -134,7 +161,7 @@ class GameState:
         #   down
         self.__fill_direction(r, c, 0, 1, moves)
 
-    def knight_moves(self, r, c, moves):
+    def knight_moves(self, r:int, c:int, moves:set[Move]) -> None:
         hops = [
             (-2, -1),
             (-2, 1),
@@ -147,10 +174,10 @@ class GameState:
         ]
         for dr, dc in hops:
             if self.__valid_move((r, c), (r + dr, c + dc)):
-                moves.append(self.get_move((r, c), (r + dr, c + dc)))
+                moves.add(self.get_move((r, c), (r + dr, c + dc)))
 
-    def bishop_moves(self, r, c, moves):
-        logger.warning(f"Bishop {r} {c}")
+    def bishop_moves(self, r:int, c:int, moves:set[Move]) -> None:
+
         #   up left
         self.__fill_direction(r, c, -1, -1, moves)
         #   up right
@@ -160,14 +187,14 @@ class GameState:
         #   down right
         self.__fill_direction(r, c, 1, 1, moves)
 
-    def queen_moves(self, r, c, moves):
-        logger.warning(f"Queen {r} {c}")
+    def queen_moves(self, r:int, c:int, moves:set[Move]) -> None:
+
         #  rook moves
         self.rook_moves(r, c, moves)
         #  bishop moves
         self.bishop_moves(r, c, moves)
 
-    def king_moves(self, r, c, moves):
+    def king_moves(self, r:int, c:int, moves:set[Move])-> None:
         around = [
             (-1, 0),
             (1, 0),
@@ -181,4 +208,4 @@ class GameState:
         for dr, dc in around:
             row, col = r + dr, c + dc
             if self.__valid_move((r, c), (row, col)):
-                moves.append(self.get_move((r, c), (row, col)))
+                moves.add(self.get_move((r, c), (row, col)))
