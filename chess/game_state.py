@@ -75,6 +75,12 @@ class GameState:
                 moves.remove(move)
             self.white_to_move = not self.white_to_move
             self.undo_move()
+
+        if len(moves) == 0:
+            if self.in_check():
+                logger.info("Checkmate!! "+ ("black" if self.white_to_move else "white") + " wins!")
+            else:
+                logger.info("Stalemate!! It's a draw!")
         
 
         return moves
