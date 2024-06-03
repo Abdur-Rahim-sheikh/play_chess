@@ -29,6 +29,12 @@ class Move:
     def __hash__(self):
         return self.move_id
 
+    def is_pawn_promotion(self) -> bool:
+        return (
+            (self.piece_moved == "wP" and self.end_sq[0] == 0)
+            or (self.piece_moved == "bP" and self.end_sq[0] == 7)
+        )
+
     def get_chess_notation(self) -> str:
         return self.get_rank_file(
             self.start_sq[0], self.start_sq[1]
@@ -36,3 +42,5 @@ class Move:
 
     def get_rank_file(self, r: int, c: int) -> str:
         return self.cols_to_files[c] + self.rows_to_ranks[r]
+
+
