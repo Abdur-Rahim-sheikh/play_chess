@@ -8,12 +8,15 @@ class Move:
     cols_to_files = {v: k for k, v in files_to_cols.items()}
 
     def __init__(
-        self, start_sq: tuple[int, int], end_sq: tuple[int, int], board: np.ndarray
+        self, start_sq: tuple[int, int], end_sq: tuple[int, int], board: np.ndarray, en_passant=False
     ):
         self.start_sq = start_sq
         self.end_sq = end_sq
         self.piece_moved = board[start_sq[0]][start_sq[1]]
         self.piece_captured = board[end_sq[0]][end_sq[1]]
+        self.is_en_passant = en_passant
+        if self.is_en_passant:
+            self.piece_captured = "bP" if self.piece_moved == "wP" else "wP"
         self.move_id = (
             start_sq[0] * 1000 + start_sq[1] * 100 + end_sq[0] * 10 + end_sq[1]
         )

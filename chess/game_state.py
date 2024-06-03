@@ -39,28 +39,53 @@ class GameState:
             "Q": self.queen_moves,
             "K": self.king_moves,
         }
+        self.stalemate = False
+        self.checkmate = False
+
 
     def get_move(self, start_sq: tuple[int, int], end_sq: tuple[int, int]) -> Move:
-        return Move(start_sq, end_sq, self.board)
+        en_passant = (
+            self.board[start_sq[0]][start_sq[1]][1] == "P"
+            and self.board[end_sq[0]][end_sq[1]] == self.BLANK
+        )
+        return Move(start_sq, end_sq, self.board, en_passant=en_passant)
 
     def make_move(self, move: Move) -> None:
-        self.board[move.start_sq[0]][move.start_sq[1]] = "--"
-        self.board[move.end_sq[0]][move.end_sq[1]] = move.piece_moved
         self.move_log.append(move)
         self.white_to_move = not self.white_to_move
+        if move.is_en_passant:
+            self.board[move.start_sq[0]][move.start_sq[1]] = self.BLANK
+            self.board[move.start_sq[0]][move.end_sq[1]] = self.BLANK
+            self.board[move.end_sq[0]][move.end_sq[1]] = move.piece_moved
+            return
+        self.board[move.start_sq[0]][move.start_sq[1]] = self.BLANK
+        self.board[move.end_sq[0]][move.end_sq[1]] = move.piece_moved
+
+
         if move.piece_moved[1] == 'K':
             self.kings_position[move.piece_moved[0]] = (move.end_sq[0], move.end_sq[1])
+        elif move.is_pawn_promotion():
+            self.board[move.end_sq[0]][move.end_sq[1]] = move.piece_moved[0] + "Q"
 
     def undo_move(self) -> None:
         if len(self.move_log) != 0:
             move = self.move_log.pop()
+            self.white_to_move = not self.white_to_move
+            self.checkmate = self.stalemate = False
+            if move.is_en_passant:
+                self.board[move.start_sq[0]][move.end_sq[1]] = move.piece_captured
+                self.board[move.end_sq[0]][move.end_sq[1]] = self.BLANK
+                self.board[move.start_sq[0]][move.start_sq[1]] = move.piece_moved
+                return
             self.board[move.start_sq[0]][move.start_sq[1]] = move.piece_moved
             self.board[move.end_sq[0]][move.end_sq[1]] = move.piece_captured
-            self.white_to_move = not self.white_to_move
+
             if move.piece_moved[1] == 'K':
                 self.kings_position[move.piece_moved[0]] = (move.start_sq[0], move.start_sq[1])
+            if move.is_pawn_promotion():
+                self.board[move.start_sq[0]][move.start_sq[1]] = move.piece_moved[0] + "P"
         else:
-            logger.info("No moves to undo")
+            logger.warning("No moves to undo")
 
     def all_valid_moves(self) -> set[Move]:
         # generate all possible moves
@@ -78,11 +103,13 @@ class GameState:
 
         if len(moves) == 0:
             if self.in_check():
-                logger.info("Checkmate!! "+ ("black" if self.white_to_move else "white") + " wins!")
+                logger.warning("Checkmate!! "+ ("black" if self.white_to_move else "white") + " wins!")
+                self.checkmate = True
             else:
-                logger.info("Stalemate!! It's a draw!")
+                self.stalemate = True
+                logger.warning("Stalemate!! It's a draw!")
         
-
+        logger.warning(self.board)
         return moves
 
     def in_check(self) -> bool:
@@ -137,24 +164,32 @@ class GameState:
 
     def pawn_moves(self, r, c, moves) -> None:
         if self.white_to_move:
-            if r - 1 >= 0 and self.board[r - 1][c] == "--":
+            if r - 1 >= 0 and self.board[r - 1][c] == self.BLANK:
                 moves.add(self.get_move((r, c), (r - 1, c)))
-                if r == 6 and self.board[r - 2][c] == "--":
+                if r == 6 and self.board[r - 2][c] == self.BLANK:
                     moves.add(self.get_move((r, c), (r - 2, c)))
 
             if r - 1 >= 0 and c - 1 >= 0 and self.board[r - 1][c - 1][0] == "b":
                 moves.add(self.get_move((r, c), (r - 1, c - 1)))
             if r - 1 >= 0 and c + 1 < 8 and self.board[r - 1][c + 1][0] == "b":
                 moves.add(self.get_move((r, c), (r - 1, c + 1)))
+            if self.move_log and self.move_log[-1].piece_moved == "bP" and abs(self.move_log[-1].start_sq[0] - self.move_log[-1].end_sq[0]) == 2:
+                if self.move_log[-1].end_sq == (r, c - 1) or self.move_log[-1].end_sq == (r, c + 1):
+                    moves.add(self.get_move((r, c), (r - 1, self.move_log[-1].end_sq[1])))
+
         else:
-            if r + 1 < 8 and self.board[r + 1][c] == "--":
+            if r + 1 < 8 and self.board[r + 1][c] == self.BLANK:
                 moves.add(self.get_move((r, c), (r + 1, c)))
-                if r == 1 and self.board[r + 2][c] == "--":
+                if r == 1 and self.board[r + 2][c] == self.BLANK:
                     moves.add(self.get_move((r, c), (r + 2, c)))
             if r + 1 < 8 and c - 1 >= 0 and self.board[r + 1][c - 1][0] == "w":
                 moves.add(self.get_move((r, c), (r + 1, c - 1)))
             if r + 1 < 8 and c + 1 < 8 and self.board[r + 1][c + 1][0] == "w":
                 moves.add(self.get_move((r, c), (r + 1, c + 1)))
+
+            if self.move_log and self.move_log[-1].piece_moved == "wP" and abs(self.move_log[-1].start_sq[0] - self.move_log[-1].end_sq[0]) == 2:
+                if self.move_log[-1].end_sq == (r, c - 1) or self.move_log[-1].end_sq == (r, c + 1):
+                    moves.add(self.get_move((r, c), (r + 1, self.move_log[-1].end_sq[1])))
 
     def rook_moves(self, r:int, c:int, moves:set[Move]) -> None:
 
