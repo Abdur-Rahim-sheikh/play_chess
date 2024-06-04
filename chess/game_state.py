@@ -24,6 +24,7 @@ class GameState:
             ]
         )
 
+
         self.white_to_move = True
         self.kings_position = {
             "w": (7, 4),
@@ -43,16 +44,19 @@ class GameState:
         self.checkmate = False
 
 
+
     def get_move(self, start_sq: tuple[int, int], end_sq: tuple[int, int]) -> Move:
         en_passant = (
             self.board[start_sq[0]][start_sq[1]][1] == "P"
             and self.board[end_sq[0]][end_sq[1]] == self.BLANK
+            and abs(start_sq[1] - end_sq[1]) == 1
         )
         return Move(start_sq, end_sq, self.board, en_passant=en_passant)
 
     def make_move(self, move: Move) -> None:
         self.move_log.append(move)
         self.white_to_move = not self.white_to_move
+        logger.warning(f"{move.is_en_passant=}")
         if move.is_en_passant:
             self.board[move.start_sq[0]][move.start_sq[1]] = self.BLANK
             self.board[move.start_sq[0]][move.end_sq[1]] = self.BLANK
@@ -61,11 +65,18 @@ class GameState:
         self.board[move.start_sq[0]][move.start_sq[1]] = self.BLANK
         self.board[move.end_sq[0]][move.end_sq[1]] = move.piece_moved
 
-
+        logger.warning(f"{move.is_pawn_promotion()} - {move.piece_moved} - {move.end_sq}")
         if move.piece_moved[1] == 'K':
             self.kings_position[move.piece_moved[0]] = (move.end_sq[0], move.end_sq[1])
         elif move.is_pawn_promotion():
             self.board[move.end_sq[0]][move.end_sq[1]] = move.piece_moved[0] + "Q"
+
+        if move.piece_moved[1] == 'K' and abs(move.start_sq[1] - move.end_sq[1]) == 2:
+            rook_old = (move.start_sq[0], 7) if move.end_sq[1] == 6 else (move.start_sq[0], 0)
+            rook_new = (move.start_sq[0], 5) if move.end_sq[1] == 6 else (move.start_sq[0], 3)
+            self.board[rook_old[0]][rook_old[1]] = self.BLANK
+            self.board[rook_new[0]][rook_new[1]] = move.piece_moved[0] + "R"
+
 
     def undo_move(self) -> None:
         if len(self.move_log) != 0:
@@ -82,14 +93,25 @@ class GameState:
 
             if move.piece_moved[1] == 'K':
                 self.kings_position[move.piece_moved[0]] = (move.start_sq[0], move.start_sq[1])
-            if move.is_pawn_promotion():
+            elif move.is_pawn_promotion():
                 self.board[move.start_sq[0]][move.start_sq[1]] = move.piece_moved[0] + "P"
+
+            if move.piece_moved[1] == 'K' and abs(move.start_sq[1] - move.end_sq[1]) == 2:
+                rook_old = (move.start_sq[0], 5) if move.end_sq[1] == 6 else (move.start_sq[0], 3)
+                rook_new = (move.start_sq[0], 7) if move.end_sq[1] == 6 else (move.start_sq[0], 0)
+                self.board[rook_old[0]][rook_old[1]] = self.BLANK
+                self.board[rook_new[0]][rook_new[1]] = move.piece_moved[0] + "R"
         else:
             logger.warning("No moves to undo")
 
     def all_valid_moves(self) -> set[Move]:
         # generate all possible moves
         moves = self.all_possible_moves()
+        # now generate castle move, if the king is not actively under attack
+        # it need to be generated here, cause after that we pass them to check if we make the move will the king be under attack
+        if not any(map(lambda possible_move: possible_move.piece_captured[1]=='K', moves)):
+            self.add_castle_moves(moves)
+
         #  for each move make opponent's move
         for move in list(moves):
             self.make_move(move)
@@ -121,10 +143,25 @@ class GameState:
         self.white_to_move = not self.white_to_move
         opponent_moves = self.all_possible_moves()
         self.white_to_move = not self.white_to_move
-        for move in opponent_moves:
-            if move.end_sq == sq:
-                return True
-        return False
+        return any(map(lambda move: move.end_sq == sq, opponent_moves))
+    def add_castle_moves(self, moves: set[Move]) -> None:
+        # this possibility only says if the move is possible, not if it's valid
+        # also we make sure that king is not under attack right now,
+        # above two are decided to do before for the poor algorithm which creates infinite loop
+
+        king_sq = (7, 4) if self.white_to_move else (0, 4)
+        proposed_move = [self.get_move(king_sq, (king_sq[0],king_sq[1]+2)), self.get_move(king_sq, (king_sq[0],king_sq[1]-2))]
+
+        for move in proposed_move:
+
+            rook_sq = (king_sq[0], 7) if move.end_sq[1] == 6 else (king_sq[0], 0)
+            min_c, max_c = min(king_sq[1], rook_sq[1]), max(king_sq[1], rook_sq[1])
+            between = [(king_sq[0], c) for c in range(min_c+1, max_c)]
+            if not all(map(lambda sq: self.board[sq[0]][sq[1]] == self.BLANK, between)):
+                continue
+            if any(map(lambda prev_move: prev_move.end_sq == rook_sq or prev_move.end_sq == king_sq, self.move_log)):
+                continue
+            moves.add(move)
 
     def all_possible_moves(self) -> set[Move]:
         moves = set()
@@ -250,3 +287,5 @@ class GameState:
             row, col = r + dr, c + dc
             if self.__valid_move((r, c), (row, col)):
                 moves.add(self.get_move((r, c), (row, col)))
+
+
