@@ -8,7 +8,7 @@ DIMENSION = 8  # dimensions of a chess board are 8x8
 SQ_SIZE = HEIGHT // DIMENSION
 MAX_FPS = 15
 IMAGES = {}
-
+colors = []
 
 def load_images():
     if IMAGES:
@@ -41,6 +41,7 @@ def draw_game_state(screen, gs, valid_moves, sq_selected):
 
 
 def draw_board(screen):
+    global colors
     colors = [p.Color("white"), p.Color("gray")]
     for r in range(DIMENSION):
         for c in range(DIMENSION):
@@ -61,6 +62,27 @@ def draw_pieces(screen, board):
                 IMAGES[piece], p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE)
             )
 
+def animate_move(move, screen, board, clock):
+    global colors
+    delta_r = move.end_sq[0] - move.start_sq[0]
+    delta_c = move.end_sq[1] - move.start_sq[1]
+    frames_per_square = 10  # frames to move one square
+    frame_count = (abs(delta_r) + abs(delta_c)) * frames_per_square
+    for frame in range(frame_count + 1):
+        r, c = (move.start_sq[0] + delta_r * frame / frame_count, move.start_sq[1] + delta_c * frame / frame_count)
+        draw_board(screen)
+        draw_pieces(screen, board)
+        # erase the piece moved from its ending square
+        color = colors[0] if (move.end_sq[0] + move.end_sq[1]) % 2 == 0 else colors[1]
+        end_square = p.Rect(move.end_sq[1] * SQ_SIZE, move.end_sq[0] * SQ_SIZE, SQ_SIZE, SQ_SIZE)
+        p.draw.rect(screen, color, end_square)
+        # draw captured piece onto rectangle
+        if move.piece_captured != "--":
+            screen.blit(IMAGES[move.piece_captured], end_square)
+        # draw moving piece
+        screen.blit(IMAGES[move.piece_moved], p.Rect(int(c * SQ_SIZE), int(r * SQ_SIZE), SQ_SIZE, SQ_SIZE))
+        p.display.flip()
+        clock.tick(60)
 
 def main():
     p.init()
@@ -70,6 +92,7 @@ def main():
     gs = GameState()
     valid_moves = gs.all_valid_moves()
     move_made = False  # flag variable for when a move is made
+    animate = False
     load_images()
     running = True
     sq_selected = ()  # no square is selected, keep track of the last click of the user (tuple: (row, col))
@@ -94,6 +117,7 @@ def main():
                     if move in valid_moves:
                         gs.make_move(move)
                         move_made = True
+                        animate = True
                     else:
                         logger.warning(
                             f"Invalid move: {move}, allowed are:{[str(move) for move in valid_moves]}"
@@ -106,9 +130,12 @@ def main():
                     move_made = True
 
         if move_made:
+            if animate:
+                animate_move(gs.move_log[-1], screen, gs.board, clock)
             valid_moves = gs.all_valid_moves()
             move_made = False
-        draw_game_state(screen, gs)
+            animate = False
+        draw_game_state(screen, gs, valid_moves, sq_selected)
         clock.tick(MAX_FPS)
         p.display.flip()
 
