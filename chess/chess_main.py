@@ -1,6 +1,6 @@
 import pygame as p
 import logging
-from chess import GameState
+from chess import GameState, SmartMoveFinder
 
 logger = logging.getLogger(__name__)
 WIDTH = HEIGHT = 512  # 400 is another option
@@ -80,6 +80,7 @@ def animate_move(move, screen, board, clock):
         if move.piece_captured != "--":
             screen.blit(IMAGES[move.piece_captured], end_square)
         # draw moving piece
+        logger.warning(f"Moving {move.piece_moved} to {r}, {c} and capturing {move.piece_captured}")
         screen.blit(IMAGES[move.piece_moved], p.Rect(int(c * SQ_SIZE), int(r * SQ_SIZE), SQ_SIZE, SQ_SIZE))
         p.display.flip()
         clock.tick(60)
@@ -98,6 +99,7 @@ def main():
     clock = p.time.Clock()
     screen.fill(p.Color("white"))
     gs = GameState()
+    smf = SmartMoveFinder()
     valid_moves = gs.all_valid_moves()
     move_made = False  # flag variable for when a move is made
     animate = False
@@ -105,11 +107,17 @@ def main():
     running = True
     sq_selected = ()  # no square is selected, keep track of the last click of the user (tuple: (row, col))
     player_clicks = []  # keep track of player clicks (two tuples: [(6, 4), (4, 4)])
+
+    player_one = True  # if a human is playing white, then this will be True, if an AI is playing then it will be False
+    player_two = False  # same as above but for black
     while running:
+        human_turn = (gs.white_to_move and player_one) or (not gs.white_to_move and player_two)
+
         for e in p.event.get():
             if e.type == p.QUIT:
                 running = False
             elif e.type == p.MOUSEBUTTONDOWN:
+                if not human_turn: continue
                 location = p.mouse.get_pos()
                 col = location[0] // SQ_SIZE
                 row = location[1] // SQ_SIZE
@@ -135,6 +143,9 @@ def main():
             elif e.type == p.KEYDOWN:
                 if e.key == p.K_z and p.key.get_mods() and p.KMOD_CTRL:
                     gs.undo_move()
+
+                    if len(gs.move_log)%2 == 0:
+                        gs.undo_move()
                     move_made = True
                 elif e.key == p.K_r and p.key.get_mods() and p.KMOD_CTRL:
                     gs = GameState()
@@ -144,6 +155,14 @@ def main():
                     move_made = False
                     animate = False
 
+        if move_made:
+            valid_moves = gs.all_valid_moves()
+        # AI move finder logic
+        if not gs.checkmate and not gs.stalemate and not human_turn:
+            ai_move = smf.find_move(valid_moves, gs.board)
+            gs.make_move(ai_move)
+            move_made = True
+            animate = True
         if move_made:
             if animate:
                 animate_move(gs.move_log[-1], screen, gs.board, clock)

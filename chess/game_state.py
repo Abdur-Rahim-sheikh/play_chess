@@ -56,7 +56,7 @@ class GameState:
     def make_move(self, move: Move) -> None:
         self.move_log.append(move)
         self.white_to_move = not self.white_to_move
-        logger.warning(f"{move.is_en_passant=}")
+
         if move.is_en_passant:
             self.board[move.start_sq[0]][move.start_sq[1]] = self.BLANK
             self.board[move.start_sq[0]][move.end_sq[1]] = self.BLANK
@@ -65,7 +65,6 @@ class GameState:
         self.board[move.start_sq[0]][move.start_sq[1]] = self.BLANK
         self.board[move.end_sq[0]][move.end_sq[1]] = move.piece_moved
 
-        logger.warning(f"{move.is_pawn_promotion()} - {move.piece_moved} - {move.end_sq}")
         if move.piece_moved[1] == 'K':
             self.kings_position[move.piece_moved[0]] = (move.end_sq[0], move.end_sq[1])
         elif move.is_pawn_promotion():
@@ -133,8 +132,7 @@ class GameState:
             else:
                 self.stalemate = True
                 logger.warning("Stalemate!! It's a draw!")
-        
-        logger.warning(self.board)
+
         return moves
 
     def in_check(self) -> bool:
