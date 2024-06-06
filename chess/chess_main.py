@@ -19,9 +19,24 @@ def load_images():
             p.image.load("images/" + piece + ".png"), (SQ_SIZE, SQ_SIZE)
         )
 
+def highlight_squares(screen, gs, valid_moves, sq_selected):
+    if sq_selected:
+        r, c = sq_selected
+        if gs.board[r][c][0] == ("w" if gs.white_to_move else "b"):
+            # highlight selected square
+            s = p.Surface((SQ_SIZE, SQ_SIZE))
+            s.set_alpha(100)  # transparency value
+            s.fill(p.Color("blue"))
+            screen.blit(s, (c * SQ_SIZE, r * SQ_SIZE))
+            # highlight moves from that square
+            s.fill(p.Color("yellow"))
+            for move in valid_moves:
+                if move.start_sq == (r,c):
+                    screen.blit(s, (move.end_sq[1] * SQ_SIZE, move.end_sq[0] * SQ_SIZE))
 
-def draw_game_state(screen, gs):
+def draw_game_state(screen, gs, valid_moves, sq_selected):
     draw_board(screen)
+    highlight_squares(screen, gs, valid_moves, sq_selected)
     draw_pieces(screen, gs.board)
 
 
