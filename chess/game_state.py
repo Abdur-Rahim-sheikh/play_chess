@@ -109,7 +109,10 @@ class GameState:
         moves = self.all_possible_moves()
         # now generate castle move, if the king is not actively under attack
         # it need to be generated here, cause after that we pass them to check if we make the move will the king be under attack
-        if not any(map(lambda possible_move: possible_move.piece_captured[1]=='K', moves)):
+        self.white_to_move = not self.white_to_move
+        opposite_moves = self.all_possible_moves()
+        self.white_to_move = not self.white_to_move
+        if not any(map(lambda possible_move: possible_move.piece_captured[1]=='K', opposite_moves)):
             self.add_castle_moves(moves)
 
         #  for each move make opponent's move

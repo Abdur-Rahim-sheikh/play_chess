@@ -84,6 +84,14 @@ def animate_move(move, screen, board, clock):
         p.display.flip()
         clock.tick(60)
 
+
+def draw_end_game_text(screen, text):
+    font = p.font.SysFont("Helvitca", 32, True, True)
+    text_object = font.render(text, 0, p.Color("Gray"))
+    text_location = p.Rect(0, 0, WIDTH, HEIGHT).move(WIDTH / 2 - text_object.get_width() / 2, HEIGHT / 2 - text_object.get_height() / 2)
+    screen.blit(text_object, text_location)
+    text_object = font.render(text, 0, p.Color("Red"))
+    screen.blit(text_object, text_location.move(2, 2))
 def main():
     p.init()
     screen = p.display.set_mode((WIDTH, HEIGHT))
@@ -128,6 +136,13 @@ def main():
                 if e.key == p.K_z and p.key.get_mods() and p.KMOD_CTRL:
                     gs.undo_move()
                     move_made = True
+                elif e.key == p.K_r and p.key.get_mods() and p.KMOD_CTRL:
+                    gs = GameState()
+                    valid_moves = gs.all_valid_moves()
+                    sq_selected = ()
+                    player_clicks = []
+                    move_made = False
+                    animate = False
 
         if move_made:
             if animate:
@@ -136,6 +151,13 @@ def main():
             move_made = False
             animate = False
         draw_game_state(screen, gs, valid_moves, sq_selected)
+        if gs.checkmate:
+            if gs.white_to_move:
+                draw_end_game_text(screen, "Black wins by checkmate")
+            else:
+                draw_end_game_text(screen, "White wins by checkmate")
+        elif gs.stalemate:
+            draw_end_game_text(screen, "Stalemate")
         clock.tick(MAX_FPS)
         p.display.flip()
 
