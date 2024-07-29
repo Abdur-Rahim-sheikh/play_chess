@@ -8,7 +8,11 @@ class Move:
     cols_to_files = {v: k for k, v in files_to_cols.items()}
 
     def __init__(
-        self, start_sq: tuple[int, int], end_sq: tuple[int, int], board: np.ndarray, en_passant=False
+        self,
+        start_sq: tuple[int, int],
+        end_sq: tuple[int, int],
+        board: np.ndarray,
+        en_passant=False,
     ):
         self.start_sq = start_sq
         self.end_sq = end_sq
@@ -33,9 +37,8 @@ class Move:
         return self.move_id
 
     def is_pawn_promotion(self) -> bool:
-        return (
-            (self.piece_moved == "wP" and self.end_sq[0] == 0)
-            or (self.piece_moved == "bP" and self.end_sq[0] == 7)
+        return (self.piece_moved == "wP" and self.end_sq[0] == 0) or (
+            self.piece_moved == "bP" and self.end_sq[0] == 7
         )
 
     def get_chess_notation(self) -> str:
@@ -45,5 +48,3 @@ class Move:
 
     def get_rank_file(self, r: int, c: int) -> str:
         return self.cols_to_files[c] + self.rows_to_ranks[r]
-
-
