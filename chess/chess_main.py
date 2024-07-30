@@ -183,7 +183,7 @@ def main():
             valid_moves = gs.all_valid_moves()
         # AI move finder logic
         if not gs.checkmate and not gs.stalemate and not human_turn:
-            ai_move = smf.find_move(valid_moves, gs.board)
+            ai_move = smf.find_move(gs, valid_moves)
             gs.make_move(ai_move)
             move_made = True
             animate = True
