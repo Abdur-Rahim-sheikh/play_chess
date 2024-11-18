@@ -122,7 +122,8 @@ class GameState:
         # generate all possible moves
         moves = self.all_possible_moves()
         # now generate castle move, if the king is not actively under attack
-        # it need to be generated here, cause after that we pass them to check if we make the move will the king be under attack
+        # it need to be generated here, cause after that we pass them to check
+        # if we make the move will the king be under attack
         self.white_to_move = not self.white_to_move
         opposite_moves = self.all_possible_moves()
         self.white_to_move = not self.white_to_move
@@ -172,7 +173,7 @@ class GameState:
         return any(map(lambda move: move.end_sq == sq, opponent_moves))
 
     def add_castle_moves(self, moves: set[Move]) -> None:
-        # this possibility only says if the move is possible, not if it's valid
+        # this prediction only says if the move is possible, not if it's valid
         # also we make sure that king is not under attack right now,
         # above two are decided to do before for the poor algorithm which creates infinite loop
 
