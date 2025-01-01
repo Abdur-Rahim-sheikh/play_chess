@@ -3,4 +3,4 @@ chess tutorial followed [click](https://www.youtube.com/playlist?list=PLBwF487qi
 
 
 ## Chess
-Made many algorithm to make it efficient
+Applied customized algorithms to make it efficient

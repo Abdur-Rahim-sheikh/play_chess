@@ -145,6 +145,8 @@ def main():
                 location = p.mouse.get_pos()
                 col = location[0] // SQ_SIZE
                 row = location[1] // SQ_SIZE
+                if not (0 <= row < DIMENSION and 0 <= col < DIMENSION):
+                    continue
                 if sq_selected == (row, col):
                     sq_selected = ()
                     player_clicks = []
