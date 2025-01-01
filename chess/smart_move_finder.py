@@ -21,13 +21,15 @@ class SmartMoveFinder:
         # return self.find_random_move(valid_moves)
         return self.find_greedy_move(gs, valid_moves)
 
-    def score_board(self, board: list) -> int:
+    def score_board(self, board: list, player_turn: str) -> int:
         score = 0
         for row in board:
             for square in row:
-                if square[0] == "w":
+                if square == "--":
+                    continue
+                elif square[0] == player_turn:
                     score += self.pieceScore[square[1]]
-                if square[0] == "b":
+                else:
                     score -= self.pieceScore[square[1]]
         return score
 
@@ -36,7 +38,7 @@ class SmartMoveFinder:
         return random.choice(list(valid_moves))
 
     def find_greedy_move(self, gs: GameState, valid_moves: set) -> Move:
-        turn_multiplier = 1 if gs.white_to_move else -1
+        player_turn = "w" if gs.white_to_move else "b"
         max_score = -self.CHECKMATE
         best_move = None
         for player_move in valid_moves:
@@ -46,7 +48,8 @@ class SmartMoveFinder:
             elif gs.stalemate:
                 score = self.STALEMATE
             else:
-                score = turn_multiplier * self.score_board(gs.board)
+                score = self.score_board(gs.board, player_turn)
+
             gs.undo_move()
             if score > max_score:
                 max_score = score
